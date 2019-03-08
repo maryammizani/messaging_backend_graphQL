@@ -66,7 +66,19 @@ app.use((req, res, next) => {
 
 app.use('/graphql', graphqlHttp({
         schema: graphqlSchema,
-        rootValue: graphqlResolver
+        rootValue: graphqlResolver,
+        graphiql: true,
+        formatError(err) {
+            // originalError will be set by express-graphQL
+            // when it detects an error thrown in our code or by a third party package.
+            if(!err.originalError) {  // Example missing char in a query
+                return err;
+            }
+            const data = err.originalError.data;
+            const message = err.message || 'An Error occered.';
+            const code = err.originalError.code || 500;
+            return { message: message, status: code, data: data}
+        }
     })
 );
 
