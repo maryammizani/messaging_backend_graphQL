@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const graphqlHttp = require('express-graphql');
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
@@ -53,6 +54,7 @@ app.use(
 // All the req starting with /images, will go through this middleware
 // __dirname: path to the dir were this file is located
 app.use('/images', express.static(path.join(__dirname, 'images')))
+//app.use('/images', express.static(__dirname));
 
 app.use((req, res, next) => {
     // set all the domains that should be able to access our server
@@ -67,6 +69,24 @@ app.use((req, res, next) => {
 });
 
 app.use(auth);
+
+// To create a post with images:
+// First send a REST req to save the image and return the path to the front
+// Then send a graphql req with this path and the rest of the data
+app.put('/post-image', (req, res, next) => {
+    if(!req.isAuth) {
+        throw new Error('Not authenticated');
+    }
+    if(!req.file) {
+        return res.status(200).json({message: 'No file provided.'});
+    }
+    if(req.body.oldPath) {
+        clearImage(req.body.oldPath);       
+    }
+    return res.status(201)
+    .json({message: 'File stored.', filePath: req.file.path});
+});
+
 
 app.use('/graphql', graphqlHttp({
         schema: graphqlSchema,
@@ -100,3 +120,7 @@ mongoose.connect(MONGODB_URI + '?retryWrites=true', { useNewUrlParser: true } )
 })
 .catch(err => console.log(err));
 
+const clearImage = filePath => {
+    filePath = path.join(__dirname, '..', filePath);
+    fs.unlink(filePath, err => console.log(err));  //Asynchronously removes the file
+}
