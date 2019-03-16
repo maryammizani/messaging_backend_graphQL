@@ -3,12 +3,12 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+
 const graphqlHttp = require('express-graphql');
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
 const auth = require('./middleware/auth');
-
+const {clearImage} = require('./util/file');
 const uuidv4 = require('uuid/v4');
 const key = require('./key');
 const MONGODB_URI = key.MONGODB_URI;
@@ -120,7 +120,3 @@ mongoose.connect(MONGODB_URI + '?retryWrites=true', { useNewUrlParser: true } )
 })
 .catch(err => console.log(err));
 
-const clearImage = filePath => {
-    filePath = path.join(__dirname, '..', filePath);
-    fs.unlink(filePath, err => console.log(err));  //Asynchronously removes the file
-}
