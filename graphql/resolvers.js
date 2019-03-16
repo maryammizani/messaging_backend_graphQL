@@ -159,5 +159,59 @@ module.exports = {
             createdAt: post.createdAt.toISOString(),
             updatedAt: post.updatedAt.toISOString()
     }
+  },
+
+  //----------------------------------------------------
+
+  updatePost: async function({id, postInput}, req) {
+    if(!req.isAuth) {
+        const error = new Error('Not authenticated.');
+        error.code = 401;
+        throw error;
+    }
+    const post = await Post.findById(id).populate('creator');
+    if(!post) {
+        const error = new Error('Post was not found.');
+        error.code = 404;
+        throw error;
+    }
+    if(post.creator._id.toString() !== req.userId.toString()) {
+        const error = new Error('Not authorized.');
+        error.code = 403;
+        throw error;
+    }
+
+    //----------------------------------------------------
+    // Validate user input
+    //
+    const errors = [];
+    if(validator.isEmpty(postInput.title) ||
+       !validator.isLength(postInput.title, {min: 5})) {
+           errors.push({message: 'Title is invalid.'});
+       }
+    if(validator.isEmpty(postInput.content) ||
+       !validator.isLength(postInput.content, {min: 5})) {
+           errors.push({message: 'Content is invalid.'});
+       }
+    if(errors.length > 0) {
+        const error = new Error('Invalid input.');
+        error.data = errors;
+        error.code = 422;
+        throw error;
+    }
+
+    // Update Post
+    post.title = postInput.title;
+    post.content = postInput.content;
+    if(postInput.imageUrl !== 'images//undefined') {
+        post.imageUrl = postInput.imageUrl;
+    }
+    const updatePost = await post.save();
+    // Convert post object to a String that graphQL understands
+    return {...updatePost._doc,
+            _id: updatePost._id.toString(),
+            createdAt: updatePost.createdAt.toISOString(),
+            updatedAt: updatePost.updatedAt.toISOString()
+    }
   }
 };
